@@ -1,72 +1,93 @@
+#!/usr/bin/env pytjon3
+
 import psycopg2
 
-# top three articles
+
 def top_three_articles():
-  conn = psycopg2.connect("dbname=news user=postgres")
+    """ Return the top three articles from the database """
 
-  curr = conn.cursor()
+    # connect to the database
+    conn = psycopg2.connect("dbname=news user=postgres")
 
-  # reference: https://stackoverflow.com/questions/15378216/postgresql-contains-in-where-clause 
-  query = '''SELECT articles.title, count(*) as num FROM log, articles
-             WHERE log.path = '/article/' || articles.slug 
-                 AND log.status = '200 OK'
-             GROUP BY articles.title 
-             ORDER BY num DESC LIMIT 3;'''
+    curr = conn.cursor()
 
-  curr.execute(query)
+    # query to run
+    # reference
+    # https://stackoverflow.com/questions/15378216/postgresql-contains-in-where-clause
+    query = '''SELECT articles.title, count(*) as num FROM log, articles
+               WHERE log.path = '/article/' || articles.slug
+                   AND log.status = '200 OK'
+               GROUP BY articles.title
+               ORDER BY num DESC LIMIT 3;'''
 
-  results = curr.fetchall()
+    curr.execute(query)
 
-  for result in results:
-    title = result[0] 
-    views = str(result[1])
+    results = curr.fetchall()
 
-    print(title + " (" + views + " views)")
+    # go through each result and print to screen
+    for result in results:
+        title = result[0]
+        views = str(result[1])
 
-  curr.close()
-  conn.close()
+        print(title + " (" + views + " views)")
 
-  return
+    # close connection to database
+    curr.close()
+    conn.close()
 
-# popular authors
+    return
+
+
 def top_authors():
-  conn = psycopg2.connect("dbname=news user=postgres")
+    """ Get the authors with the most views on their articles """
 
-  curr = conn.cursor()
+    # connect to the database
+    conn = psycopg2.connect("dbname=news user=postgres")
 
-  # reference: https://stackoverflow.com/questions/15378216/postgresql-contains-in-where-clause 
-  query = '''SELECT authors.name, count(*) as num FROM log, articles, authors
-             WHERE log.path = '/article/' || articles.slug 
+    curr = conn.cursor()
+
+    # query to run
+    # reference:
+    # https://stackoverflow.com/questions/15378216/postgresql-contains-in-where-clause
+    query = '''SELECT authors.name, count(*) as num FROM log, articles, authors
+             WHERE log.path = '/article/' || articles.slug
                  AND authors.id = articles.author
                  AND log.status = '200 OK'
-             GROUP BY authors.name 
+             GROUP BY authors.name
              ORDER BY num DESC LIMIT 3;'''
 
-  curr.execute(query)
+    curr.execute(query)
 
-  results = curr.fetchall()
+    results = curr.fetchall()
 
-  for result in results:
-    title = result[0] 
-    views = str(result[1])
+    # go through all the authors and print to screen
+    for result in results:
+        title = result[0]
+        views = str(result[1])
 
-    print(title + " (" + views + " views)")
+        print(title + " (" + views + " views)")
 
-  curr.close()
-  conn.close()
+    # close connection to database
+    curr.close()
+    conn.close()
 
-  return
+    return
 
-# days with more than 1% of errors
+
 def error_days():
-  conn = psycopg2.connect("dbname=news user=postgres")
+    """ Get the days with more than 1% errors """
 
-  curr = conn.cursor()
+    # connect to the database
+    conn = psycopg2.connect("dbname=news user=postgres")
 
-  # reference: https://stackoverflow.com/questions/15378216/postgresql-contains-in-where-clause 
-  query_avg = '''
+    curr = conn.cursor()
+
+    # query to run
+    # reference
+    # https://stackoverflow.com/questions/15378216/postgresql-contains-in-where-clause
+    query_avg = '''
               WITH error_counts AS (
-                SELECT date_trunc('day', time) as day, 
+                SELECT date_trunc('day', time) as day,
                   CAST(COUNT(*) AS FLOAT) as num
                 FROM log
                 WHERE STATUS != '200 OK'
@@ -76,7 +97,7 @@ def error_days():
                    CAST(COUNT(*) AS FLOAT) AS total_num
                 FROM log
                 GROUP BY day)
-              SELECT 
+              SELECT
                 to_char(total_counts.day, 'Month DD YYYY') AS day,
                 (error_counts.num / total_counts.total_num * 100) as percent
               FROM total_counts, error_counts
@@ -85,32 +106,40 @@ def error_days():
               LIMIT 1;
               '''
 
-  curr.execute(query_avg)
+    curr.execute(query_avg)
 
-  results = curr.fetchall()
+    results = curr.fetchall()
 
-  for result in results:
-    date = result[0].replace("     ", "")
-    percent = result[1]
-    print(date + " (" + str(percent) + "% errors)")
+    # go through each day and print to screen
+    for result in results:
+        date = result[0].replace("     ", "")
+        percent = result[1]
+        print(date + " (" + str(percent[:3]) + "% errors)")
 
-  curr.close()
-  conn.close()
+    # close connection to database
+    curr.close()
+    conn.close()
 
-  return
-
-
-print("Top Three Articles")
-print("------------------")
-
-top_three_articles()
+    return
 
 
-print("\nTop Authors")
-print("-----------")
+def main():
+    """ Run all the functions to grab analytics from the database """
 
-top_authors()
+    print("Top Three Articles")
+    print("------------------")
+    top_three_articles()
 
-print("\nDays With >1% Errors")
-print("--------------------")
-error_days()
+    print("\nTop Authors")
+    print("-----------")
+    top_authors()
+
+    print("\nDays With >1% Errors")
+    print("--------------------")
+    error_days()
+
+    return
+
+# run the program
+if __name__ == "__main__":
+    main()
