@@ -114,7 +114,7 @@ def error_days():
     for result in results:
         date = result[0].replace("     ", "")
         percent = result[1]
-        print(date + " (" + str(percent[:3]) + "% errors)")
+        print(date + " (" + str(percent)[:4] + "% errors)")
 
     # close connection to database
     curr.close()
